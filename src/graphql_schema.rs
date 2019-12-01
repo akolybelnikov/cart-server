@@ -1,16 +1,29 @@
+extern crate dotenv;
+
+use std::env;
+
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
+use dotenv::dotenv;
 use juniper::{EmptyMutation, RootNode};
 
+
 #[allow(non_snake_case)]
-struct Product {
-    id: String,
-    productName: String,
-    price: i32,
+#[derive(Queryable)]
+pub struct Product {
+    pub id: i32,
+    pub sku: String,
+    pub productName: String,
+    pub price: i32,
 }
 
 #[juniper::object(description = "A product in the list")]
 impl Product {
-    pub fn id(&self) -> &str {
-        self.id.as_str()
+    pub fn id(&self) -> i32 {
+        self.id
+    }
+    pub fn sku(&self) -> &str {
+        self.sku.as_str()
     }
 
     pub fn productName(&self) -> &str {
@@ -22,16 +35,22 @@ impl Product {
     }
 }
 
+#[derive(Queryable)]
 struct CartItem {
-    item: Product,
-    amount: i32,
-    total: i32,
+    pub id: i32,
+    pub sku: String,
+    pub amount: i32,
+    pub total: i32,
 }
 
 #[juniper::object(description = "An item in the cart")]
 impl CartItem {
-    pub fn item(&self) -> &Product {
-        &self.item
+    pub fn id(&self) -> i32 {
+        self.id
+    }
+
+    pub fn sku(&self) -> &str {
+        &self.sku.as_str()
     }
 
     pub fn amount(&self) -> i32 {
@@ -45,36 +64,21 @@ impl CartItem {
 
 pub struct QueryRoot;
 
+fn establish_connection() -> PgConnection {
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABAE_URL must be set");
+    PgConnection::establish(&database_url).expect(&format!("Error connecting to {}", database_url))
+}
+
 #[juniper::object]
 impl QueryRoot {
     fn products() -> Vec<Product> {
-        vec![
-            Product {
-                id: "bea0c670-5c17-420b-a682-db3fdbc609ba".to_owned(),
-                productName: "Soup - Cream Of Broccoli, Dry".to_owned(),
-                price: 19484,
-            },
-            Product {
-                id: "c70a90ff-823b-4d34-8d12-6ba32e9f685f".to_owned(),
-                productName: "Juice - Lemon".to_owned(),
-                price: 38631,
-            },
-            Product {
-                id: "153dc45d-6adf-4bfc-995c-82f6d113ce93".to_owned(),
-                productName: "Paper Towel Touchless".to_owned(),
-                price: 80904,
-            },
-            Product {
-                id: "7abb0be7-4a56-4398-95cc-bd7309458866".to_owned(),
-                productName: "Bread - Sour Sticks With Onion".to_owned(),
-                price: 35891,
-            },
-            Product {
-                id: "125a25a2-b604-449a-8e2f-09e0743657a6".to_owned(),
-                productName: "Flour - Strong".to_owned(),
-                price: 80869,
-            },
-        ]
+        use crate::schema::products::dsl::*;
+        let connection = establish_connection();
+        products
+            .limit(100)
+            .load::<Product>(&connection)
+            .expect("Error loading products")
     }
 }
 

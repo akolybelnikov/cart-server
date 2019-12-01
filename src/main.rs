@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 #[macro_use]
+extern crate diesel;
 extern crate juniper;
 
 use std::io;
@@ -11,6 +12,7 @@ use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
 
 mod graphql_schema;
+mod schema;
 
 use graphql_schema::{create_schema, Schema};
 
