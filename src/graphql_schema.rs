@@ -7,7 +7,6 @@ use diesel::prelude::*;
 use dotenv::dotenv;
 use juniper::{EmptyMutation, RootNode};
 
-
 #[allow(non_snake_case)]
 #[derive(Queryable)]
 pub struct Product {
@@ -38,9 +37,9 @@ impl Product {
 #[derive(Queryable)]
 struct CartItem {
     pub id: i32,
-    pub sku: String,
-    pub amount: i32,
     pub total: i32,
+    pub amount: i32,
+    pub sku: String,
 }
 
 #[juniper::object(description = "An item in the cart")]
@@ -50,7 +49,7 @@ impl CartItem {
     }
 
     pub fn sku(&self) -> &str {
-        &self.sku.as_str()
+        self.sku.as_str()
     }
 
     pub fn amount(&self) -> i32 {
@@ -76,9 +75,16 @@ impl QueryRoot {
         use crate::schema::products::dsl::*;
         let connection = establish_connection();
         products
-            .limit(100)
             .load::<Product>(&connection)
             .expect("Error loading products")
+    }
+
+    fn cart_items() -> Vec<CartItem> {
+        use crate::schema::cart_items::dsl::*;
+        let connection = establish_connection();
+        cart_items
+            .load::<CartItem>(&connection)
+            .expect("Error loading cart items")
     }
 }
 
